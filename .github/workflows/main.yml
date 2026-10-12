@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -30,27 +29,21 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Install Android SDK packages
-        shell: bash
+      - name: Verify project files
         run: |
-          set -e
-          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
-          if [ -z "$SDKMANAGER" ]; then
-            echo "Android SDK manager was not found."
-            exit 1
-          fi
-          yes | "$SDKMANAGER" --licenses
-          "$SDKMANAGER" --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          test -f package.json || (echo "ERROR: package.json is missing from repository root" && exit 1)
+          test -f index.html || (echo "ERROR: index.html is missing from repository root" && exit 1)
+          test -d src || (echo "ERROR: src folder is missing from repository root" && exit 1)
+          cat package.json
 
-      - name: Install project dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
       - name: Build Sudoku web app
         run: npm run build
+
+      - name: Verify Capacitor Android dependency
+        run: npm ls @capacitor/core @capacitor/android
 
       - name: Add Android platform
         run: npx cap add android
